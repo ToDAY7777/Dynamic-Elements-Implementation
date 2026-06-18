@@ -1,22 +1,22 @@
-# Asignación 6 — PokéDex Discovery Dashboard
+# Assignment 6 — PokéDex Discovery Dashboard
 
-## 1. API Seleccionada
+## 1. Selected API
 **PokeAPI v2** — https://pokeapi.co/docs/v2  
-API REST pública, sin autenticación, con endpoints para listar y detallar pokémon.
+Free public REST API, no authentication required, with endpoints to list and detail Pokémon.
 
-### Endpoints utilizados
-| Endpoint | Uso |
+### Endpoints Used
+| Endpoint | Purpose |
 |---|---|
-| `GET /pokemon?limit=300` | Lista inicial de nombres + URLs |
-| `GET /pokemon/{id}` | Detalles: sprites, stats, tipos, habilidades |
-| `GET /pokemon-species/{id}` | Descripción de texto (flavor_text) |
+| `GET /pokemon?limit=300` | Initial list of names + URLs |
+| `GET /pokemon/{id}` | Details: sprites, stats, types, abilities |
+| `GET /pokemon-species/{id}` | Flavor text description |
 
-### Claves JSON inspeccionadas
+### Inspected JSON Keys
 ```
-sprites.other.official-artwork.front_default   → imagen HD
-sprites.front_default                          → fallback
-types[].type.name                              → tipo primario/secundario
-stats[].base_stat + stats[].stat.name         → estadísticas base
+sprites.other.official-artwork.front_default   → HD artwork image
+sprites.front_default                          → fallback sprite
+types[].type.name                              → primary/secondary type
+stats[].base_stat + stats[].stat.name         → base statistics
 abilities[].ability.name + abilities[].is_hidden
 height, weight, base_experience
 flavor_text_entries[].flavor_text (lang: es/en)
@@ -24,66 +24,66 @@ flavor_text_entries[].flavor_text (lang: es/en)
 
 ---
 
-## 2. Arquitectura General
+## 2. General Architecture
 
-### HTML casi vacío
-El `<body>` tiene sólo 4 divs vacíos (`#header`, `#app`, `#grid`, `#modal-overlay`). Todo el UI se construye en tiempo de ejecución con `document.createElement()`.
+### Nearly Empty HTML
+The `<body>` contains only 4 empty divs (`#header`, `#app`, `#grid`, `#modal-overlay`). All UI is built at runtime using `document.createElement()`.
 
-### Flujo de datos
+### Data Flow
 ```
 init()
  └─ fetch /pokemon?limit=300    → state.allPokemon[]
      └─ applyFilters()           → state.filtered[]
          └─ loadNextPage()       → fetch /pokemon/{id} × 24 (Promise.all)
-             └─ buildCard(data)  → DOM insertado en #grid
+             └─ buildCard(data)  → DOM node inserted into #grid
 ```
 
 ---
 
-## 3. Decisiones Técnicas de Rendimiento
+## 3. Performance Technical Decisions
 
-### Por qué `transform` y `opacity` (no `margin`/`display`)
-- `transform` y `opacity` son propiedades **compuestas**: el navegador las delega a la GPU sin recalcular el layout (reflow) ni repintar el documento (repaint).  
-- Animar `margin`, `height` o `top` fuerza un **reflow** completo en cada frame → jank visible.
-- Técnica usada en las tarjetas: `opacity: 0 → 1` + `translateY(18px) → 0` + `scale(0.96 → 1)`.
+### Why `transform` and `opacity` (not `margin`/`display`)
+- `transform` and `opacity` are **composited properties**: the browser delegates them to the GPU without recalculating the layout (reflow) or repainting the document (repaint).
+- Animating `margin`, `height`, or `top` forces a full **reflow** on every frame → visible jank.
+- Technique used on cards: `opacity: 0 → 1` + `translateY(18px) → 0` + `scale(0.96 → 1)`.
 
-### Mecanismo de Ocultación Híbrido (modal)
+### Hybrid Hide Mechanism (modal)
 ```css
-/* CERRADO */
+/* CLOSED */
 opacity: 0;
-visibility: hidden;   /* ← el elemento NO recibe eventos de puntero */
+visibility: hidden;   /* ← element does NOT receive pointer events */
 
-/* ABIERTO */
+/* OPEN */
 opacity: 1;
 visibility: visible;
 ```
-Usar sólo `opacity: 0` dejaría el overlay invisible pero **interceptando todos los clics** del resto de la página. Añadir `visibility: hidden` lo retira del árbol de eventos sin causar layout shift.
+Using only `opacity: 0` would leave the overlay invisible but **intercepting all page clicks**. Adding `visibility: hidden` removes it from the event tree without causing a layout shift.
 
-### Animación de barras de estadísticas
-Las barras usan `width` dentro de un contenedor con `overflow: hidden`. El navegador sólo necesita repintar la barra interior (contenida), lo que lo convierte en una operación barata comparada con animar el elemento directamente en el flujo.
+### Stats Bar Animation
+The bars animate `width` inside a container with `overflow: hidden`. The browser only needs to repaint the inner bar (contained), making it a cheap operation compared to animating the element directly in the document flow.
 
-### `Promise.all` para lote de 24 requests
-En lugar de 24 fetches secuenciales (lento), se lanzan todos en paralelo y se espera al más lento del lote. Tiempo típico: ~400 ms en lugar de ~4–8 s.
+### `Promise.all` for batches of 24 requests
+Instead of 24 sequential fetches (slow), all are launched in parallel and wait for the slowest in the batch. Typical time: ~400ms instead of ~4–8s.
 
 ---
 
-## 4. Patrones Implementados
+## 4. Implemented Patterns
 
-| Requisito | Implementación |
+| Requirement | Implementation |
 |---|---|
-| Fetch async/await | `async function apiFetch(url)` con try/catch y mensajes de error visuales |
-| DOM 100% dinámico | `buildCard()`, `showModal()`, `buildHeader()` — zero HTML hardcodeado |
-| Animaciones GPU | `transform + opacity` con `cubic-bezier(0.34, 1.56, 0.64, 1)` (spring) |
-| Modal híbrido | `opacity + visibility` en `#modal-overlay`, `scale + translateY` en `#modal` |
-| Búsqueda/filtro | Filtro en memoria sobre `state.allPokemon` sin re-fetching |
-| Paginación | "Cargar más" con lotes de 24, caché en objeto de estado |
-| Accesibilidad | `role="button"`, `tabindex`, `aria-label`, `prefers-reduced-motion` |
-| Responsive | CSS Grid `auto-fill minmax(160px, 1fr)` + media queries |
+| Async fetch with async/await | `async function apiFetch(url)` with try/catch and visual error messages |
+| 100% dynamic DOM | `buildCard()`, `showModal()`, `buildHeader()` — zero hardcoded HTML |
+| GPU-accelerated animations | `transform + opacity` with `cubic-bezier(0.34, 1.56, 0.64, 1)` (spring easing) |
+| Hybrid modal hide | `opacity + visibility` on `#modal-overlay`, `scale + translateY` on `#modal` |
+| Search/filter | In-memory filter over `state.allPokemon` without re-fetching |
+| Pagination | "Load more" with batches of 24, cached in state object |
+| Accessibility | `role="button"`, `tabindex`, `aria-label`, `prefers-reduced-motion` |
+| Responsive layout | CSS Grid `auto-fill minmax(160px, 1fr)` + media queries |
 
 ---
 
-## 5. Citación de Documentación
+## 5. API Documentation Citation
 - **PokeAPI Docs**: https://pokeapi.co/docs/v2
 - **MDN — Using Fetch**: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
-- **MDN — CSS will-change / transform**: https://developer.mozilla.org/en-US/docs/Web/CSS/will-change
-- **Google Web Fundamentals — Rendering Performance**: https://web.dev/rendering-performance/
+- **MDN — CSS transform / opacity**: https://developer.mozilla.org/en-US/docs/Web/CSS/will-change
+- **Web.dev — Rendering Performance**: https://web.dev/rendering-performance/
