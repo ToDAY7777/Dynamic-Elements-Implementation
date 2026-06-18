@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    /* ─── TOKENS ─────────────────────────────────────────── */
     :root {
       --bg:        #0b0c10;
       --surface:   #12141a;
@@ -24,7 +23,6 @@
       --transition: 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    /* ─── RESET & BASE ───────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
@@ -38,7 +36,6 @@
     img { display: block; }
     button { cursor: pointer; border: none; background: none; font-family: inherit; }
 
-    /* ─── HEADER ─────────────────────────────────────────── */
     #header {
       position: sticky;
       top: 0;
@@ -97,14 +94,12 @@
       color: var(--bg);
     }
 
-    /* ─── MAIN LAYOUT ────────────────────────────────────── */
     #app {
       max-width: 1280px;
       margin: 0 auto;
       padding: 32px 20px 80px;
     }
 
-    /* ─── STATS BAR ──────────────────────────────────────── */
     #stats-bar {
       display: flex;
       gap: 24px;
@@ -129,14 +124,12 @@
       letter-spacing: 0.08em;
     }
 
-    /* ─── GRID ───────────────────────────────────────────── */
     #grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 16px;
     }
 
-    /* ─── CARD ───────────────────────────────────────────── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -208,7 +201,6 @@
       font-weight: 700;
     }
 
-    /* ─── LOADER ─────────────────────────────────────────── */
     #loader {
       grid-column: 1 / -1;
       display: flex;
@@ -225,7 +217,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── ERROR ──────────────────────────────────────────── */
     #error-msg {
       grid-column: 1 / -1;
       text-align: center;
@@ -235,7 +226,6 @@
     }
     #error-msg p { margin-top: 8px; font-family: var(--font-body); color: var(--muted); font-size: 0.9rem; }
 
-    /* ─── LOAD MORE ──────────────────────────────────────── */
     #load-more-wrap {
       text-align: center;
       margin-top: 40px;
@@ -254,7 +244,6 @@
     #btn-load-more:hover { background: var(--accent); color: var(--bg); transform: translateY(-2px); }
     #btn-load-more:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-    /* ─── MODAL (Hybrid Hide Mechanism) ──────────────────── */
     #modal-overlay {
       position: fixed;
       inset: 0;
@@ -265,7 +254,6 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      /* ✅ HYBRID OCULTACIÓN: opacidad + visibilidad */
       opacity: 0;
       visibility: hidden;
       transition: opacity 280ms ease, visibility 280ms ease;
@@ -292,7 +280,6 @@
       transform: scale(1) translateY(0);
     }
 
-    /* Modal internals */
     #modal-close {
       position: absolute;
       top: 16px; right: 16px;
@@ -354,7 +341,6 @@
       padding-bottom: 6px;
     }
 
-    /* Stats bars */
     .stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .stat-name { font-size: 0.78rem; color: var(--muted); width: 90px; flex-shrink: 0; text-transform: capitalize; font-family: var(--font-display); }
     .stat-num { font-family: var(--font-display); font-size: 0.78rem; width: 32px; text-align: right; flex-shrink: 0; }
@@ -372,7 +358,6 @@
       transition: width 600ms cubic-bezier(0.25, 1, 0.5, 1);
     }
 
-    /* Abilities + Measurements */
     .info-row { display: flex; gap: 20px; flex-wrap: wrap; }
     .info-block {
       flex: 1;
@@ -396,7 +381,6 @@
     }
     .ability-tag.hidden-ability { border-color: var(--accent); color: var(--accent); }
 
-    /* ─── TYPE COLORS ────────────────────────────────────── */
     .t-normal    { background:#A8A878; color:#fff; }
     .t-fire      { background:#F08030; color:#fff; }
     .t-water     { background:#6890F0; color:#fff; }
@@ -416,14 +400,12 @@
     .t-steel     { background:#B8B8D0; color:#333; }
     .t-fairy     { background:#EE99AC; color:#fff; }
 
-    /* ─── RESPONSIVE ─────────────────────────────────────── */
     @media (max-width: 520px) {
       #grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
       #modal { padding: 20px; }
       .modal-header { flex-direction: column; align-items: center; text-align: center; }
     }
 
-    /* ─── REDUCED MOTION ─────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, .card, #modal, #modal-overlay, .stat-bar-fill, .modal-img { transition: none !important; animation: none !important; }
     }
@@ -431,25 +413,20 @@
 </head>
 <body>
 
-<!-- HEADER: generado por JS, solo el anchor -->
 <div id="header"></div>
 
-<!-- APP ROOT -->
 <div id="app">
   <div id="stats-bar"></div>
   <div id="grid"></div>
   <div id="load-more-wrap"></div>
 </div>
 
-<!-- MODAL OVERLAY (Hybrid Hide Mechanism) -->
 <div id="modal-overlay" role="dialog" aria-modal="true" aria-label="Detalle del Pokémon">
   <div id="modal"></div>
 </div>
 
 <script type="module">
-  /* ═══════════════════════════════════════════════════════
-     CONSTANTES & ESTADO
-  ═══════════════════════════════════════════════════════ */
+  /* CONSTANTES & ESTADO */
   const API = 'https://pokeapi.co/api/v2';
   const PAGE_SIZE = 24;
 
@@ -463,18 +440,14 @@
     totalCount: 0,
   };
 
-  /* ═══════════════════════════════════════════════════════
-     FETCH HELPERS
-  ═══════════════════════════════════════════════════════ */
+  /* FETCH HELPERS */
   async function apiFetch(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
     return res.json();
   }
 
-  /* ═══════════════════════════════════════════════════════
-     CONSTRUCCIÓN DEL HEADER (DOM dinámico)
-  ═══════════════════════════════════════════════════════ */
+  /* CONSTRUCCIÓN DEL HEADER (DOM dinámico) */
   function buildHeader() {
     const header = document.getElementById('header');
 
@@ -513,9 +486,7 @@
     header.appendChild(filterBar);
   }
 
-  /* ═══════════════════════════════════════════════════════
-     STATS BAR
-  ═══════════════════════════════════════════════════════ */
+  /*  STATS BAR  */
   function renderStatsBar() {
     const bar = document.getElementById('stats-bar');
     bar.innerHTML = '';
@@ -544,9 +515,7 @@
     });
   }
 
-  /* ═══════════════════════════════════════════════════════
-     FILTROS
-  ═══════════════════════════════════════════════════════ */
+  /* FILTROS */
   function applyFilters() {
     const q = state.searchQuery;
     const t = state.activeType;
@@ -563,9 +532,7 @@
     loadNextPage();
   }
 
-  /* ═══════════════════════════════════════════════════════
-     CARGA DE PÁGINA (fetch detallado por lote)
-  ═══════════════════════════════════════════════════════ */
+  /* CARGA DE PÁGINA (fetch detallado por lote) */
   async function loadNextPage() {
     if (state.loading) return;
     state.loading = true;
@@ -580,7 +547,6 @@
         slice.map(p => p.detail ? Promise.resolve(p.detail) : apiFetch(p.url))
       );
 
-      // guardar detalles en caché dentro del estado
       slice.forEach((p, i) => { p.detail = details[i]; });
 
       hideLoader();
@@ -593,7 +559,6 @@
         const card = buildCard(d, types);
         grid.appendChild(card);
 
-        // Animación de entrada escalonada con transform/opacity (GPU acelerado)
         requestAnimationFrame(() => {
           setTimeout(() => card.classList.add('visible'), i * 45);
         });
@@ -611,16 +576,13 @@
     state.loading = false;
   }
 
-  /* ═══════════════════════════════════════════════════════
-     CONSTRUIR TARJETA (100% createElement)
-  ═══════════════════════════════════════════════════════ */
+  /* CONSTRUIR TARJETA (100% createElement) */
   function buildCard(data, types) {
     const primaryType = types[0] || 'normal';
     const num = String(data.id).padStart(3, '0');
     const sprite = data.sprites?.other?.['official-artwork']?.front_default
                 || data.sprites?.front_default;
 
-    // Contenedor
     const card = document.createElement('div');
     card.className = 'card';
     card.style.setProperty('--type-color', getTypeHex(primaryType));
@@ -628,13 +590,11 @@
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', `Ver detalles de ${data.name}`);
 
-    // Número
     const numEl = document.createElement('div');
     numEl.className = 'card-num';
     numEl.textContent = `#${num}`;
     card.appendChild(numEl);
 
-    // Imagen
     const imgWrap = document.createElement('div');
     imgWrap.className = 'card-img-wrap';
     if (sprite) {
@@ -647,19 +607,16 @@
     }
     card.appendChild(imgWrap);
 
-    // Nombre
     const name = document.createElement('div');
     name.className = 'card-name';
     name.textContent = data.name;
     card.appendChild(name);
 
-    // Tipos
     const typesEl = document.createElement('div');
     typesEl.className = 'card-types';
     types.forEach(t => typesEl.appendChild(makeBadge(t)));
     card.appendChild(typesEl);
 
-    // Evento: abrir modal
     const openModal = () => showModal(data.id);
     card.addEventListener('click', openModal);
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openModal(); });
@@ -674,23 +631,19 @@
     return badge;
   }
 
-  /* ═══════════════════════════════════════════════════════
-     MODAL — VISTA DE DETALLE
-  ═══════════════════════════════════════════════════════ */
+  /* MODAL — VISTA DE DETALLE */
   async function showModal(pokemonId) {
     const overlay = document.getElementById('modal-overlay');
     const modal   = document.getElementById('modal');
 
     modal.innerHTML = '';
 
-    // Mostrar overlay primero (con spinner adentro)
     const spinner = document.createElement('div');
     spinner.className = 'spinner';
     modal.appendChild(spinner);
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    // Botón cerrar
     const closeBtn = document.createElement('button');
     closeBtn.id = 'modal-close';
     closeBtn.textContent = '✕';
@@ -717,7 +670,6 @@
       modal.innerHTML = '';
       modal.appendChild(closeBtn);
 
-      // — Header del modal —
       const header = document.createElement('div');
       header.className = 'modal-header';
 
@@ -760,7 +712,6 @@
       header.appendChild(meta);
       modal.appendChild(header);
 
-      // — Stats —
       const statsSection = document.createElement('div');
       statsSection.className = 'modal-section';
       const stTitle = document.createElement('div');
@@ -798,7 +749,7 @@
         row.appendChild(track);
         statsSection.appendChild(row);
 
-        // Animar barra tras breve delay (GPU: solo width en track overflow:hidden)
+        // Animar barra tras breve delay 
         requestAnimationFrame(() => {
           setTimeout(() => { fill.style.width = `${(val / max) * 100}%`; }, 80);
         });
@@ -836,7 +787,6 @@
       infoSection.appendChild(infoRow);
       modal.appendChild(infoSection);
 
-      // — Habilidades —
       const abilSection = document.createElement('div');
       abilSection.className = 'modal-section';
       const abilTitle = document.createElement('div');
@@ -881,9 +831,7 @@
     if (e.key === 'Escape') closeModal();
   });
 
-  /* ═══════════════════════════════════════════════════════
-     BOTÓN CARGAR MÁS
-  ═══════════════════════════════════════════════════════ */
+  /* BOTÓN CARGAR MÁS */
   function renderLoadMore() {
     const wrap = document.getElementById('load-more-wrap');
     wrap.innerHTML = '';
@@ -900,9 +848,7 @@
     wrap.appendChild(btn);
   }
 
-  /* ═══════════════════════════════════════════════════════
-     LOADER / ERROR (DOM dinámico)
-  ═══════════════════════════════════════════════════════ */
+  /* LOADER / ERROR (DOM dinámico) */
   function showLoader() {
     const grid = document.getElementById('grid');
     const loader = document.createElement('div');
@@ -922,9 +868,7 @@
     grid.appendChild(err);
   }
 
-  /* ═══════════════════════════════════════════════════════
-     COLORES POR TIPO (para card ::before glow)
-  ═══════════════════════════════════════════════════════ */
+  /* COLORES POR TIPO (para card ::before glow) */
   const TYPE_HEX = {
     normal:'#A8A878',fire:'#F08030',water:'#6890F0',electric:'#F8D030',
     grass:'#78C850',ice:'#98D8D8',fighting:'#C03028',poison:'#A040A0',
@@ -934,9 +878,7 @@
   };
   function getTypeHex(type) { return TYPE_HEX[type] || '#888'; }
 
-  /* ═══════════════════════════════════════════════════════
-     INIT — carga inicial de toda la lista
-  ═══════════════════════════════════════════════════════ */
+  /* INIT — carga inicial de toda la lista */
   async function init() {
     buildHeader();
 
@@ -944,7 +886,6 @@
     showLoader();
 
     try {
-      // Traer los primeros 300 para tener base de búsqueda/filtro
       const data = await apiFetch(`${API}/pokemon?limit=300&offset=0`);
       state.totalCount = data.count;
       state.allPokemon = data.results.map(p => ({ ...p, types: null, detail: null }));
