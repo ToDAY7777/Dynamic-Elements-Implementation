@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PokéDex — Discovery Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:        #0b0c10;
+      --surface:   #12141a;
+      --card:      #1a1d26;
+      --border:    #2a2d3a;
+      --accent:    #f9ec3d;
+      --accent2:   #e84040;
+      --text:      #e8eaf0;
+      --muted:     #6b7085;
+      --font-display: 'Space Mono', monospace;
+      --font-body:    'Space Grotesk', sans-serif;
+      --radius:    12px;
+      --transition: 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ─── RESET & BASE ───────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    img { display: block; }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+    /* ─── HEADER ─────────────────────────────────────────── */
+    #header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11, 12, 16, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    #header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1rem, 3vw, 1.4rem);
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+    #header h1 span { color: var(--text); }
+    #search-input {
+      flex: 1;
+      min-width: 180px;
+      max-width: 320px;
+      padding: 9px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 200ms;
+    }
+    #search-input:focus { border-color: var(--accent); }
+    #search-input::placeholder { color: var(--muted); }
+    #filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .type-pill {
+      padding: 5px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-family: var(--font-display);
+      color: var(--muted);
+      transition: all 200ms;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .type-pill:hover, .type-pill.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+
+    /* ─── MAIN LAYOUT ────────────────────────────────────── */
+    #app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* ─── STATS BAR ──────────────────────────────────────── */
+    #stats-bar {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ─── GRID ───────────────────────────────────────────── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
+
+    /* ─── CARD ───────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+      transition: opacity 300ms, transform var(--transition),
+                  border-color 200ms, box-shadow 200ms;
+      position: relative;
+      overflow: hidden;
+    }
+    .card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, var(--type-color, #444) 0%, transparent 70%);
+      opacity: 0.08;
+      transition: opacity 300ms;
+    }
+    .card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .card:hover::before { opacity: 0.18; }
+    .card:hover .card-img { transform: scale(1.12) translateY(-4px); }
+
+    .card-num {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .card-img-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 8px 0;
+      height: 90px;
+    }
+    .card-img {
+      width: 90px;
+      height: 90px;
+      image-rendering: pixelated;
+      transition: transform var(--transition);
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+    }
+    .card-name {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+    .card-types {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .type-badge {
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-size: 0.65rem;
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+
+    /* ─── LOADER ─────────────────────────────────────────── */
+    #loader {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+      padding: 60px 0;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── ERROR ──────────────────────────────────────────── */
+    #error-msg {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--accent2);
+      font-family: var(--font-display);
+    }
+    #error-msg p { margin-top: 8px; font-family: var(--font-body); color: var(--muted); font-size: 0.9rem; }
+
+    /* ─── LOAD MORE ──────────────────────────────────────── */
+    #load-more-wrap {
+      text-align: center;
+      margin-top: 40px;
+    }
+    #btn-load-more {
+      padding: 12px 32px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 100px;
+      color: var(--accent);
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      transition: background 200ms, color 200ms, transform 150ms;
+    }
+    #btn-load-more:hover { background: var(--accent); color: var(--bg); transform: translateY(-2px); }
+    #btn-load-more:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ─── MODAL (Hybrid Hide Mechanism) ──────────────────── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      /* ✅ HYBRID OCULTACIÓN: opacidad + visibilidad */
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 280ms ease, visibility 280ms ease;
+    }
+    #modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      transform: scale(0.9) translateY(20px);
+      transition: transform var(--transition);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    #modal-overlay.open #modal {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Modal internals */
+    #modal-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text);
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 200ms, transform 150ms;
+    }
+    #modal-close:hover { background: var(--accent2); transform: rotate(90deg); }
+    #modal { position: relative; }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .modal-img-wrap {
+      background: var(--card);
+      border-radius: 12px;
+      width: 120px;
+      height: 120px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-img {
+      width: 110px;
+      height: 110px;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.6));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-6px); }
+    }
+    .modal-meta { flex: 1; }
+    .modal-num { font-family: var(--font-display); color: var(--muted); font-size: 0.75rem; margin-bottom: 4px; }
+    .modal-name { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; text-transform: capitalize; margin-bottom: 8px; }
+    .modal-types { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .modal-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+
+    .modal-section { margin-bottom: 22px; }
+    .modal-section-title {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    /* Stats bars */
+    .stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .stat-name { font-size: 0.78rem; color: var(--muted); width: 90px; flex-shrink: 0; text-transform: capitalize; font-family: var(--font-display); }
+    .stat-num { font-family: var(--font-display); font-size: 0.78rem; width: 32px; text-align: right; flex-shrink: 0; }
+    .stat-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+      transition: width 600ms cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* Abilities + Measurements */
+    .info-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .info-block {
+      flex: 1;
+      min-width: 120px;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .info-block-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--font-display); }
+    .info-block-val { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-top: 4px; }
+
+    .abilities-list { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ability-tag {
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      text-transform: capitalize;
+      color: var(--muted);
+      transition: border-color 200ms;
+    }
+    .ability-tag.hidden-ability { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── TYPE COLORS ────────────────────────────────────── */
+    .t-normal    { background:#A8A878; color:#fff; }
+    .t-fire      { background:#F08030; color:#fff; }
+    .t-water     { background:#6890F0; color:#fff; }
+    .t-electric  { background:#F8D030; color:#333; }
+    .t-grass     { background:#78C850; color:#fff; }
+    .t-ice       { background:#98D8D8; color:#333; }
+    .t-fighting  { background:#C03028; color:#fff; }
+    .t-poison    { background:#A040A0; color:#fff; }
+    .t-ground    { background:#E0C068; color:#333; }
+    .t-flying    { background:#A890F0; color:#fff; }
+    .t-psychic   { background:#F85888; color:#fff; }
+    .t-bug       { background:#A8B820; color:#fff; }
+    .t-rock      { background:#B8A038; color:#fff; }
+    .t-ghost     { background:#705898; color:#fff; }
+    .t-dragon    { background:#7038F8; color:#fff; }
+    .t-dark      { background:#705848; color:#fff; }
+    .t-steel     { background:#B8B8D0; color:#333; }
+    .t-fairy     { background:#EE99AC; color:#fff; }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 520px) {
+      #grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+      #modal { padding: 20px; }
+      .modal-header { flex-direction: column; align-items: center; text-align: center; }
+    }
+
+    /* ─── REDUCED MOTION ─────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, .card, #modal, #modal-overlay, .stat-bar-fill, .modal-img { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER: generado por JS, solo el anchor -->
+<div id="header"></div>
+
+<!-- APP ROOT -->
+<div id="app">
+  <div id="stats-bar"></div>
+  <div id="grid"></div>
+  <div id="load-more-wrap"></div>
+</div>
+
+<!-- MODAL OVERLAY (Hybrid Hide Mechanism) -->
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-label="Detalle del Pokémon">
+  <div id="modal"></div>
+</div>
+
+<script type="module">
+  /* ═══════════════════════════════════════════════════════
+     CONSTANTES & ESTADO
+  ═══════════════════════════════════════════════════════ */
+  const API = 'https://pokeapi.co/api/v2';
+  const PAGE_SIZE = 24;
+
+  const state = {
+    allPokemon: [],       // lista completa (name + url)
+    filtered: [],         // después de búsqueda/tipo
+    displayed: 0,
+    activeType: 'all',
+    searchQuery: '',
+    loading: false,
+    totalCount: 0,
+  };
+
+  /* ═══════════════════════════════════════════════════════
+     FETCH HELPERS
+  ═══════════════════════════════════════════════════════ */
+  async function apiFetch(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+    return res.json();
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     CONSTRUCCIÓN DEL HEADER (DOM dinámico)
+  ═══════════════════════════════════════════════════════ */
+  function buildHeader() {
+    const header = document.getElementById('header');
+
+    const title = document.createElement('h1');
+    title.innerHTML = 'Poké<span>Dex</span>';
+    header.appendChild(title);
+
+    const search = document.createElement('input');
+    search.id = 'search-input';
+    search.type = 'search';
+    search.placeholder = 'Buscar pokémon...';
+    search.setAttribute('aria-label', 'Buscar pokémon');
+    search.addEventListener('input', e => {
+      state.searchQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+    header.appendChild(search);
+
+    const filterBar = document.createElement('div');
+    filterBar.id = 'filter-bar';
+
+    const types = ['all','fire','water','grass','electric','psychic','ghost','dragon','dark','fairy'];
+    types.forEach(type => {
+      const btn = document.createElement('button');
+      btn.className = 'type-pill' + (type === 'all' ? ' active' : '');
+      btn.textContent = type === 'all' ? 'Todos' : type;
+      btn.dataset.type = type;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        state.activeType = type;
+        applyFilters();
+      });
+      filterBar.appendChild(btn);
+    });
+    header.appendChild(filterBar);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     STATS BAR
+  ═══════════════════════════════════════════════════════ */
+  function renderStatsBar() {
+    const bar = document.getElementById('stats-bar');
+    bar.innerHTML = '';
+
+    const items = [
+      { value: state.totalCount, label: 'Pokémon totales' },
+      { value: state.filtered.length, label: 'En vista' },
+      { value: state.displayed, label: 'Cargados' },
+    ];
+
+    items.forEach(({ value, label }) => {
+      const div = document.createElement('div');
+      div.className = 'stat-item';
+
+      const val = document.createElement('span');
+      val.className = 'stat-value';
+      val.textContent = value.toLocaleString();
+
+      const lbl = document.createElement('span');
+      lbl.className = 'stat-label';
+      lbl.textContent = label;
+
+      div.appendChild(val);
+      div.appendChild(lbl);
+      bar.appendChild(div);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     FILTROS
+  ═══════════════════════════════════════════════════════ */
+  function applyFilters() {
+    const q = state.searchQuery;
+    const t = state.activeType;
+
+    state.filtered = state.allPokemon.filter(p => {
+      const matchName = !q || p.name.includes(q);
+      const matchType = t === 'all' || (p.types && p.types.includes(t));
+      return matchName && matchType;
+    });
+
+    state.displayed = 0;
+    document.getElementById('grid').innerHTML = '';
+    renderStatsBar();
+    loadNextPage();
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     CARGA DE PÁGINA (fetch detallado por lote)
+  ═══════════════════════════════════════════════════════ */
+  async function loadNextPage() {
+    if (state.loading) return;
+    state.loading = true;
+
+    const grid = document.getElementById('grid');
+    showLoader();
+
+    const slice = state.filtered.slice(state.displayed, state.displayed + PAGE_SIZE);
+
+    try {
+      const details = await Promise.all(
+        slice.map(p => p.detail ? Promise.resolve(p.detail) : apiFetch(p.url))
+      );
+
+      // guardar detalles en caché dentro del estado
+      slice.forEach((p, i) => { p.detail = details[i]; });
+
+      hideLoader();
+
+      details.forEach((d, i) => {
+        const p = slice[i];
+        const types = d.types.map(t => t.type.name);
+        p.types = types;
+
+        const card = buildCard(d, types);
+        grid.appendChild(card);
+
+        // Animación de entrada escalonada con transform/opacity (GPU acelerado)
+        requestAnimationFrame(() => {
+          setTimeout(() => card.classList.add('visible'), i * 45);
+        });
+      });
+
+      state.displayed += slice.length;
+      renderStatsBar();
+      renderLoadMore();
+
+    } catch (err) {
+      hideLoader();
+      showError('No se pudo cargar la lista. ¿Hay conexión a internet?', err.message);
+    }
+
+    state.loading = false;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     CONSTRUIR TARJETA (100% createElement)
+  ═══════════════════════════════════════════════════════ */
+  function buildCard(data, types) {
+    const primaryType = types[0] || 'normal';
+    const num = String(data.id).padStart(3, '0');
+    const sprite = data.sprites?.other?.['official-artwork']?.front_default
+                || data.sprites?.front_default;
+
+    // Contenedor
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--type-color', getTypeHex(primaryType));
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `Ver detalles de ${data.name}`);
+
+    // Número
+    const numEl = document.createElement('div');
+    numEl.className = 'card-num';
+    numEl.textContent = `#${num}`;
+    card.appendChild(numEl);
+
+    // Imagen
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'card-img-wrap';
+    if (sprite) {
+      const img = document.createElement('img');
+      img.className = 'card-img';
+      img.src = sprite;
+      img.alt = data.name;
+      img.loading = 'lazy';
+      imgWrap.appendChild(img);
+    }
+    card.appendChild(imgWrap);
+
+    // Nombre
+    const name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = data.name;
+    card.appendChild(name);
+
+    // Tipos
+    const typesEl = document.createElement('div');
+    typesEl.className = 'card-types';
+    types.forEach(t => typesEl.appendChild(makeBadge(t)));
+    card.appendChild(typesEl);
+
+    // Evento: abrir modal
+    const openModal = () => showModal(data.id);
+    card.addEventListener('click', openModal);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openModal(); });
+
+    return card;
+  }
+
+  function makeBadge(type, large = false) {
+    const badge = document.createElement('span');
+    badge.className = `type-badge t-${type}`;
+    badge.textContent = type;
+    return badge;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     MODAL — VISTA DE DETALLE
+  ═══════════════════════════════════════════════════════ */
+  async function showModal(pokemonId) {
+    const overlay = document.getElementById('modal-overlay');
+    const modal   = document.getElementById('modal');
+
+    modal.innerHTML = '';
+
+    // Mostrar overlay primero (con spinner adentro)
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    modal.appendChild(spinner);
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Botón cerrar
+    const closeBtn = document.createElement('button');
+    closeBtn.id = 'modal-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.addEventListener('click', closeModal);
+    modal.appendChild(closeBtn);
+
+    try {
+      const [poke, species] = await Promise.all([
+        apiFetch(`${API}/pokemon/${pokemonId}`),
+        apiFetch(`${API}/pokemon-species/${pokemonId}`).catch(() => null),
+      ]);
+
+      const types = poke.types.map(t => t.type.name);
+      const sprite = poke.sprites?.other?.['official-artwork']?.front_default
+                  || poke.sprites?.front_default;
+
+      const description = species?.flavor_text_entries
+        ?.find(e => e.language.name === 'es')?.flavor_text
+        || species?.flavor_text_entries
+        ?.find(e => e.language.name === 'en')?.flavor_text
+        || '';
+
+      modal.innerHTML = '';
+      modal.appendChild(closeBtn);
+
+      // — Header del modal —
+      const header = document.createElement('div');
+      header.className = 'modal-header';
+
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'modal-img-wrap';
+      if (sprite) {
+        const img = document.createElement('img');
+        img.className = 'modal-img';
+        img.src = sprite;
+        img.alt = poke.name;
+        imgWrap.appendChild(img);
+      }
+      header.appendChild(imgWrap);
+
+      const meta = document.createElement('div');
+      meta.className = 'modal-meta';
+
+      const num = document.createElement('div');
+      num.className = 'modal-num';
+      num.textContent = `#${String(poke.id).padStart(3, '0')}`;
+      meta.appendChild(num);
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'modal-name';
+      nameEl.textContent = poke.name;
+      meta.appendChild(nameEl);
+
+      const typesEl = document.createElement('div');
+      typesEl.className = 'modal-types';
+      types.forEach(t => typesEl.appendChild(makeBadge(t)));
+      meta.appendChild(typesEl);
+
+      if (description) {
+        const desc = document.createElement('div');
+        desc.className = 'modal-desc';
+        desc.textContent = description.replace(/\f/g, ' ');
+        meta.appendChild(desc);
+      }
+
+      header.appendChild(meta);
+      modal.appendChild(header);
+
+      // — Stats —
+      const statsSection = document.createElement('div');
+      statsSection.className = 'modal-section';
+      const stTitle = document.createElement('div');
+      stTitle.className = 'modal-section-title';
+      stTitle.textContent = 'Estadísticas base';
+      statsSection.appendChild(stTitle);
+
+      const statNames = { hp:'HP', attack:'Ataque', defense:'Defensa',
+        'special-attack':'Sp. Atk', 'special-defense':'Sp. Def', speed:'Velocidad' };
+
+      poke.stats.forEach(s => {
+        const val = s.base_stat;
+        const max = 255;
+
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'stat-name';
+        lbl.textContent = statNames[s.stat.name] || s.stat.name;
+
+        const num = document.createElement('div');
+        num.className = 'stat-num';
+        num.textContent = val;
+
+        const track = document.createElement('div');
+        track.className = 'stat-bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'stat-bar-fill';
+        fill.style.background = val >= 100 ? '#78C850' : val >= 65 ? '#F8D030' : '#E04040';
+        track.appendChild(fill);
+
+        row.appendChild(lbl);
+        row.appendChild(num);
+        row.appendChild(track);
+        statsSection.appendChild(row);
+
+        // Animar barra tras breve delay (GPU: solo width en track overflow:hidden)
+        requestAnimationFrame(() => {
+          setTimeout(() => { fill.style.width = `${(val / max) * 100}%`; }, 80);
+        });
+      });
+      modal.appendChild(statsSection);
+
+      // — Info: altura, peso, exp —
+      const infoSection = document.createElement('div');
+      infoSection.className = 'modal-section';
+      const infoTitle = document.createElement('div');
+      infoTitle.className = 'modal-section-title';
+      infoTitle.textContent = 'Datos físicos';
+      infoSection.appendChild(infoTitle);
+
+      const infoRow = document.createElement('div');
+      infoRow.className = 'info-row';
+
+      [
+        { label: 'Altura', value: `${(poke.height / 10).toFixed(1)} m` },
+        { label: 'Peso', value: `${(poke.weight / 10).toFixed(1)} kg` },
+        { label: 'Exp. base', value: poke.base_experience ?? '—' },
+      ].forEach(({ label, value }) => {
+        const block = document.createElement('div');
+        block.className = 'info-block';
+        const lbl = document.createElement('div');
+        lbl.className = 'info-block-label';
+        lbl.textContent = label;
+        const val = document.createElement('div');
+        val.className = 'info-block-val';
+        val.textContent = value;
+        block.appendChild(lbl);
+        block.appendChild(val);
+        infoRow.appendChild(block);
+      });
+      infoSection.appendChild(infoRow);
+      modal.appendChild(infoSection);
+
+      // — Habilidades —
+      const abilSection = document.createElement('div');
+      abilSection.className = 'modal-section';
+      const abilTitle = document.createElement('div');
+      abilTitle.className = 'modal-section-title';
+      abilTitle.textContent = 'Habilidades';
+      abilSection.appendChild(abilTitle);
+
+      const abilList = document.createElement('div');
+      abilList.className = 'abilities-list';
+      poke.abilities.forEach(a => {
+        const tag = document.createElement('span');
+        tag.className = 'ability-tag' + (a.is_hidden ? ' hidden-ability' : '');
+        tag.textContent = a.ability.name + (a.is_hidden ? ' ★' : '');
+        abilList.appendChild(tag);
+      });
+      abilSection.appendChild(abilList);
+      modal.appendChild(abilSection);
+
+    } catch (err) {
+      modal.innerHTML = '';
+      modal.appendChild(closeBtn);
+      const errEl = document.createElement('div');
+      errEl.style.color = 'var(--accent2)';
+      errEl.style.padding = '40px 20px';
+      errEl.style.textAlign = 'center';
+      errEl.textContent = 'No se pudieron cargar los detalles.';
+      modal.appendChild(errEl);
+    }
+  }
+
+  function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Cerrar al hacer clic fuera del modal
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  /* ═══════════════════════════════════════════════════════
+     BOTÓN CARGAR MÁS
+  ═══════════════════════════════════════════════════════ */
+  function renderLoadMore() {
+    const wrap = document.getElementById('load-more-wrap');
+    wrap.innerHTML = '';
+
+    if (state.displayed >= state.filtered.length) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'btn-load-more';
+    btn.textContent = `Cargar más (${state.filtered.length - state.displayed} restantes)`;
+    btn.addEventListener('click', () => {
+      btn.disabled = true;
+      loadNextPage();
+    });
+    wrap.appendChild(btn);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     LOADER / ERROR (DOM dinámico)
+  ═══════════════════════════════════════════════════════ */
+  function showLoader() {
+    const grid = document.getElementById('grid');
+    const loader = document.createElement('div');
+    loader.id = 'loader';
+    loader.innerHTML = '<div class="spinner"></div>';
+    grid.appendChild(loader);
+  }
+  function hideLoader() {
+    document.getElementById('loader')?.remove();
+  }
+  function showError(msg, detail = '') {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    const err = document.createElement('div');
+    err.id = 'error-msg';
+    err.innerHTML = `<strong>⚠ ${msg}</strong>${detail ? `<p>${detail}</p>` : ''}`;
+    grid.appendChild(err);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     COLORES POR TIPO (para card ::before glow)
+  ═══════════════════════════════════════════════════════ */
+  const TYPE_HEX = {
+    normal:'#A8A878',fire:'#F08030',water:'#6890F0',electric:'#F8D030',
+    grass:'#78C850',ice:'#98D8D8',fighting:'#C03028',poison:'#A040A0',
+    ground:'#E0C068',flying:'#A890F0',psychic:'#F85888',bug:'#A8B820',
+    rock:'#B8A038',ghost:'#705898',dragon:'#7038F8',dark:'#705848',
+    steel:'#B8B8D0',fairy:'#EE99AC',
+  };
+  function getTypeHex(type) { return TYPE_HEX[type] || '#888'; }
+
+  /* ═══════════════════════════════════════════════════════
+     INIT — carga inicial de toda la lista
+  ═══════════════════════════════════════════════════════ */
+  async function init() {
+    buildHeader();
+
+    const grid = document.getElementById('grid');
+    showLoader();
+
+    try {
+      // Traer los primeros 300 para tener base de búsqueda/filtro
+      const data = await apiFetch(`${API}/pokemon?limit=300&offset=0`);
+      state.totalCount = data.count;
+      state.allPokemon = data.results.map(p => ({ ...p, types: null, detail: null }));
+      state.filtered   = [...state.allPokemon];
+      hideLoader();
+      renderStatsBar();
+      await loadNextPage();
+    } catch (err) {
+      hideLoader();
+      showError('No se pudo conectar con la PokéAPI.', err.message);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
